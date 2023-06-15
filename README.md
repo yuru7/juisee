@@ -2,6 +2,9 @@
 
 Juisee は、欧文フォント JuliaMono と日本語フォント LINE Seed JP を合成したプログラミング向けフォントです。
 
+👉 [ダウンロード](https://github.com/yuru7/juisee/releases)
+※「Assets」内の zip ファイルをダウンロードしてご利用ください。
+
 ## 特徴
 
 以下のような特徴があります。
