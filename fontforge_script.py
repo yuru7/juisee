@@ -4,6 +4,7 @@
 
 import math
 import os
+import shutil
 import fontforge
 import psMat
 
@@ -34,9 +35,9 @@ Copyright 2022 Yuko Otawara
 
 
 def main():
-    # buildディレクトリが無い場合は作成する
-    if not os.path.exists(BUILD_FONTS_DIR):
-        os.mkdir(BUILD_FONTS_DIR)
+    # buildディレクトリを作成する
+    shutil.rmtree(BUILD_FONTS_DIR)
+    os.mkdir(BUILD_FONTS_DIR)
     # regular スタイルを生成する
     generate_font("Rg", "Regular", "Regular")
     # bold スタイルを生成する
@@ -57,8 +58,11 @@ def generate_font(src_style, dst_style, merged_style, flag_hw=False, italic=Fals
     # src_font は既に1000なので dst_font のみ変換する
     em_1000(dst_font)
 
-    # 不要なグリフを削除する
+    # 合成に邪魔なグリフを削除する
     delete_unwanted_glyphs(dst_font)
+
+    # 重複するグリフを削除する
+    delete_duplicate_glyphs(src_font, dst_font)
 
     # 日本語グリフの斜体を生成する
     if italic:
@@ -71,6 +75,9 @@ def generate_font(src_style, dst_style, merged_style, flag_hw=False, italic=Fals
     else:
         # src_fontで半角幅(500)のグリフの幅を3:5になるよう調整する
         width_500_to_600(src_font)
+
+    # GSUBテーブルを削除する (ひらがな等の全角文字が含まれる行でリガチャが解除される対策)
+    remove_lookups(src_font)
 
     # 合成する
     dst_font.mergeFonts(src_font)
@@ -115,11 +122,24 @@ def delete_unwanted_glyphs(font):
     clear_glyph_range(font, 0x3001, 0x3015)
 
 
+def delete_duplicate_glyphs(src_font, dst_font):
+    """src_fontとdst_fontのグリフを比較し、重複するグリフを削除する"""
+    for glyph in src_font.glyphs():
+        if glyph.glyphname in dst_font:
+            glyph.clear()
+
+
 def clear_glyph_range(font, start: int, end: int):
     """グリフを削除する"""
     for i in range(start, end + 1):
         for glyph in font.selection.select(("ranges", None), i).byGlyphs:
             glyph.clear()
+
+
+def remove_lookups(font):
+    """GSUB, GPOSテーブルを削除する"""
+    for lookup in list(font.gsub_lookups) + list(font.gpos_lookups):
+        font.removeLookup(lookup)
 
 
 def transform_italic_glyphs(font):
