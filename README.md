@@ -21,9 +21,7 @@ Juisee は、欧文フォント JuliaMono と日本語フォント LINE Seed JP 
 **Windows**
 
 ```sh
-& "C:\Program Files (x86)\FontForgeBuilds\bin\fontforge.exe" --lang=py -script .\fontforge_script.py
-Get-ChildItem .\build\fontforge_Juisee*.ttf | % { python3 -m ttfautohint --dehint $_.FullName $_.FullName }
-python3 fonttools_script.py
+& "C:\Program Files (x86)\FontForgeBuilds\bin\fontforge.exe" --lang=py -script .\fontforge_script.py && Get-ChildItem .\build\fontforge_Juisee*.ttf | % { python3 -m ttfautohint --dehint $_.FullName $_.FullName } && python3 fonttools_script.py
 ```
 
 ## ライセンス
