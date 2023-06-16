@@ -1,6 +1,6 @@
 # Juisee
 
-Juisee は、欧文フォント JuliaMono と日本語フォント LINE Seed JP を合成したプログラミング向けフォントです。
+Juisee は、欧文フォント [JuliaMono](https://juliamono.netlify.app) と日本語フォント [LINE Seed JP](https://seed.line.me/index_jp.html) を合成したプログラミング向けフォントです。
 
 🥤 [DOWNLOAD](https://github.com/yuru7/juisee/releases) 🥤  
 ※「Assets」内の zip ファイルをダウンロードしてご利用ください。
@@ -10,7 +10,7 @@ Juisee は、欧文フォント JuliaMono と日本語フォント LINE Seed JP 
 以下のような特徴があります。
 
 - Unicode 文字の網羅性の高さが特徴の [JuliaMono](https://juliamono.netlify.app) 由来のはんなりとした印象の英数字
-- LINE の利便性とフレンドリーなアイデンティティから着想を得て制作された [LINE Seed](https://seed.line.me/index_jp.html) 由来のやわらかな印象の日本語文字
+- LINE の利便性とフレンドリーなアイデンティティから着想を得て制作された [LINE Seed JP](https://seed.line.me/index_jp.html) 由来のやわらかな印象の日本語文字
 - 文字幅の比率が 半角3:全角5 の、ゆとりある幅になっている半角英数字
 - 主に `->` `=>` などの矢印表現において JuliaMono 由来のリガチャを搭載
 
