@@ -8,7 +8,7 @@ import shutil
 import fontforge
 import psMat
 
-VERSION = "0.0.1"
+VERSION = "v0.0.2"
 
 FONT_NAME = "Juisee"
 
@@ -205,7 +205,7 @@ def edit_meta_data(font, weight: str, flag_hw: bool):
             "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL",
         ),
         ("English (US)", "License URL", "http://scripts.sil.org/OFL"),
-        ("English (US)", "Version", f"{FONT_NAME} {VERSION}"),
+        ("English (US)", "Version", VERSION),
     )
     font.familyname = f"{FONT_NAME}{variant}"
     font.fontname = f"{FONT_NAME}{variant}-{weight}"
