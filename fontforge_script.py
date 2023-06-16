@@ -36,7 +36,8 @@ Copyright 2022 Yuko Otawara
 
 def main():
     # buildディレクトリを作成する
-    shutil.rmtree(BUILD_FONTS_DIR)
+    if os.path.exists(BUILD_FONTS_DIR):
+        shutil.rmtree(BUILD_FONTS_DIR)
     os.mkdir(BUILD_FONTS_DIR)
     # regular スタイルを生成する
     generate_font("Rg", "Regular", "Regular")
@@ -125,8 +126,15 @@ def delete_unwanted_glyphs(font):
 def delete_duplicate_glyphs(src_font, dst_font):
     """src_fontとdst_fontのグリフを比較し、重複するグリフを削除する"""
     for glyph in src_font.glyphs():
-        if glyph.glyphname in dst_font:
-            glyph.clear()
+        if glyph.unicode > 0:
+            dst_font.selection.select(("more", "unicode"), glyph.unicode)
+    for glyph in dst_font.selection.byGlyphs:
+        if glyph.isWorthOutputting():
+            src_font.selection.select(("more", "unicode"), glyph.unicode)
+    for glyph in src_font.selection.byGlyphs:
+        glyph.clear()
+    src_font.selection.none()
+    dst_font.selection.none()
 
 
 def clear_glyph_range(font, start: int, end: int):

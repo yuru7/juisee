@@ -35,6 +35,11 @@ def fix_font_tables(style, flag_hw=False):
 
     global xml_cmap
 
+    # ファイルの存在チェック
+    if not os.path.exists(f"{BUILD_FONTS_DIR}/{INPUT_PREFIX}{FONT_NAME}-{style}.ttf"):
+        print(f"Error: {INPUT_PREFIX}{FONT_NAME}-{style}.ttf not found")
+        return
+
     # OS/2, post テーブルのみのttxファイルを出力
     xml = dump_ttx(style)
     # OS/2 テーブルを編集
