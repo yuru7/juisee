@@ -30,3 +30,5 @@ Juisee は、欧文フォント [JuliaMono](https://juliamono.netlify.app) と�
 ## ライセンス
 
 SIL Open Font License, Version 1.1 が適用され、個人・商用問わず利用可能です。
+
+ソースフォントのライセンスも同様に SIL Open Font License, Version 1.1 が適用されています。詳しくは `source` ディレクトリに含まれる `LICENSE_<FontName>` ファイルを参照してください。
