@@ -18,7 +18,7 @@ Juisee は、欧文フォント [JuliaMono](https://juliamono.netlify.app) と�
 
 ![image](https://github.com/yuru7/juisee/assets/13458509/68354be6-8fbf-4fb3-a8db-db43e24f83d3)
 ![image](https://github.com/yuru7/juisee/assets/13458509/6515d3c9-4141-4206-9ab3-ec8f2d8ab449)
-![image](https://github.com/yuru7/juisee/assets/13458509/2ead07f9-a045-49b2-a180-f7971d7a6ff8)
+![image](https://github.com/yuru7/juisee/assets/13458509/96522093-2cb2-4fe9-8094-764993c3e04f)
 
 ## ビルド
 
