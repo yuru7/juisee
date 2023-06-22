@@ -22,7 +22,7 @@ Juisee は、欧文フォント [JuliaMono](https://juliamono.netlify.app) と�
 
 ## ビルド
 
-- fontforge: `20230101`
+- fontforge: `20230101` \[[Windows Build](https://fontforge.org/en-US/downloads/windows/)\]
 - Python: `>=3.8`
 
 **Windows**
