@@ -8,7 +8,7 @@ import shutil
 import fontforge
 import psMat
 
-VERSION = "v0.0.2"
+VERSION = "v0.0.3"
 
 FONT_NAME = "Juisee"
 
