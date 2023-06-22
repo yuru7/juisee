@@ -18,6 +18,8 @@ DST_FONT = "JuliaMono-"
 SOURCE_FONTS_DIR = "source"
 BUILD_FONTS_DIR = "build"
 
+IDEOGRAPHIC_SPACE = "ideographic_space.sfd"
+
 EM_ASCENT = 880
 EM_DESCENT = 120
 FONT_ASCENT = EM_ASCENT + 120
@@ -83,10 +85,13 @@ def generate_font(src_style, dst_style, merged_style, flag_hw=False, italic=Fals
     # 合成する
     dst_font.mergeFonts(src_font)
 
+    # 全角スペースを可視化する
+    visualize_zenkaku_space(dst_font)
+
     # メタデータを編集する
     edit_meta_data(dst_font, merged_style, flag_hw)
 
-    # 35版の場合の修飾子を追加する
+    # 1:2版の場合の修飾子を追加する
     variant = "hw" if flag_hw else ""
 
     # ttfファイルに保存
@@ -123,6 +128,14 @@ def delete_unwanted_glyphs(font):
     clear_glyph_range(font, 0x3001, 0x3015)
 
 
+def clear_glyph_range(font, start: int, end: int):
+    """グリフを削除する"""
+    for i in range(start, end + 1):
+        for glyph in font.selection.select(("ranges", None), i).byGlyphs:
+            glyph.clear()
+    font.selection.none()
+
+
 def delete_duplicate_glyphs(src_font, dst_font):
     """src_fontとdst_fontのグリフを比較し、重複するグリフを削除する"""
     for glyph in src_font.glyphs():
@@ -135,13 +148,6 @@ def delete_duplicate_glyphs(src_font, dst_font):
         glyph.clear()
     src_font.selection.none()
     dst_font.selection.none()
-
-
-def clear_glyph_range(font, start: int, end: int):
-    """グリフを削除する"""
-    for i in range(start, end + 1):
-        for glyph in font.selection.select(("ranges", None), i).byGlyphs:
-            glyph.clear()
 
 
 def remove_lookups(font):
@@ -180,6 +186,15 @@ def transform_half_width(font):
             glyph.transform(psMat.translate(-(glyph.width - AFTER_WIDTH) / 2, 0))
             # 幅を500にする
             glyph.width = AFTER_WIDTH
+
+
+def visualize_zenkaku_space(font):
+    """全角スペースを可視化する"""
+    font.selection.select(("unicode", None), 0x3000)
+    for glyph in font.selection.byGlyphs:
+        glyph.clear()
+    font.selection.none()
+    font.mergeFonts(fontforge.open(f"{SOURCE_FONTS_DIR}/{IDEOGRAPHIC_SPACE}"))
 
 
 def edit_meta_data(font, weight: str, flag_hw: bool):
