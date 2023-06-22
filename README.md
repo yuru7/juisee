@@ -22,7 +22,8 @@ Juisee は、欧文フォント [JuliaMono](https://juliamono.netlify.app) と�
 
 ## ビルド
 
-Python: `>=3.8`
+- fontforge: `20230101`
+- Python: `>=3.8`
 
 **Windows**
 
