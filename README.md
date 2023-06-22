@@ -22,9 +22,14 @@ Juisee は、欧文フォント [JuliaMono](https://juliamono.netlify.app) と�
 
 ## ビルド
 
+Python: `>=3.8`
+
 **Windows**
 
 ```sh
+# 必要パッケージのインストール
+pip install -r requirements.txt
+# ビルド
 & "C:\Program Files (x86)\FontForgeBuilds\bin\fontforge.exe" --lang=py -script .\fontforge_script.py && Get-ChildItem .\build\fontforge_Juisee*.ttf | % { python3 -m ttfautohint --dehint $_.FullName $_.FullName } && python3 fonttools_script.py
 ```
 
