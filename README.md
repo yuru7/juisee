@@ -47,7 +47,7 @@ pip install -r requirements.txt
 オプション付きの実行例:
 
 ```sh
-"C:\Program Files (x86)\FontForgeBuilds\bin\fontforge.exe" --lang=py -script .\fontforge_script.py --slashed-zero --invisible-zenkaku-space
+& "C:\Program Files (x86)\FontForgeBuilds\bin\fontforge.exe" --lang=py -script .\fontforge_script.py --slashed-zero --invisible-zenkaku-space
 ```
 
 ### Linux
