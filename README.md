@@ -5,6 +5,8 @@ Juisee は、欧文フォント [JuliaMono](https://juliamono.netlify.app) と�
 🥤 [DOWNLOAD](https://github.com/yuru7/juisee/releases) 🥤  
 ※「Assets」内の zip ファイルをダウンロードしてご利用ください。
 
+![image](https://github.com/yuru7/juisee/assets/13458509/b7e3d2ba-12d0-42f2-8c72-bdc376048cc7)
+
 ## 特徴
 
 以下のような特徴があります。
