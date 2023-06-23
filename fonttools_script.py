@@ -11,16 +11,18 @@ OUTPUT_PREFIX = "fonttools_"
 
 BUILD_FONTS_DIR = "build"
 
+HALF_WIDTH_STR = "HW"
+
 xml_cmap = None
 
 
 def main():
     global xml_cmap
-    fix_font_tables("Regular", False)
-    fix_font_tables("Bold", False)
+    fix_font_tables("Regular")
+    fix_font_tables("Bold")
     xml_cmap = None
-    fix_font_tables("RegularItalic", False)
-    fix_font_tables("BoldItalic", False)
+    fix_font_tables("RegularItalic")
+    fix_font_tables("BoldItalic")
 
     # 一時ファイルを削除
     # スタイル部分はワイルドカードで指定
@@ -30,32 +32,43 @@ def main():
         os.remove(filename)
 
 
-def fix_font_tables(style, flag_hw=False):
+def fix_font_tables(style):
     """フォントテーブルを編集する"""
 
     global xml_cmap
 
-    # ファイルの存在チェック
-    if not os.path.exists(f"{BUILD_FONTS_DIR}/{INPUT_PREFIX}{FONT_NAME}-{style}.ttf"):
-        print(f"Error: {INPUT_PREFIX}{FONT_NAME}-{style}.ttf not found")
+    # ファイルをパターンで指定
+    filenames = glob.glob(f"{BUILD_FONTS_DIR}/{INPUT_PREFIX}{FONT_NAME}*-{style}.ttf")
+    # ファイルが見つからない or 複数見つかった場合はエラー
+    if len(filenames) == 0:
+        print(f"Error: {INPUT_PREFIX}{FONT_NAME}*-{style}.ttf not found")
         return
+    elif len(filenames) > 1:
+        print(f"Error: {INPUT_PREFIX}{FONT_NAME}*-{style}.ttf is not unique")
+        return
+    filename = (
+        filenames[0]
+        .replace(f"{BUILD_FONTS_DIR}\\", "")
+        .replace(f"{BUILD_FONTS_DIR}/", "")
+    )
+    # ファイル名から variant を取得
+    variant = filename.replace(f"{INPUT_PREFIX}{FONT_NAME}", "").replace(
+        f"-{style}.ttf", ""
+    )
 
     # OS/2, post テーブルのみのttxファイルを出力
-    xml = dump_ttx(style)
+    xml = dump_ttx(style, variant)
     # OS/2 テーブルを編集
-    fix_os2_table(xml, style, flag_hw)
+    fix_os2_table(xml, style, flag_hw=HALF_WIDTH_STR in variant)
     # post テーブルを編集
     fix_post_table(xml)
 
     # 処理が重いので初回だけ実行して結果をキャッシュする
     if xml_cmap is None:
         # cmap テーブルのみのttxファイルを出力
-        xml_cmap = dump_ttx_cmap(style)
+        xml_cmap = dump_ttx_cmap(style, variant)
         # cmap テーブルを編集
         fix_cmap_table(xml_cmap)
-
-    # 1:2版の場合の修飾子を追加する
-    variant = "hw" if flag_hw else ""
 
     # ttxファイルを上書き保存
     xml.write(
@@ -96,7 +109,7 @@ def fix_font_tables(style, flag_hw=False):
     )
 
 
-def dump_ttx(style: str) -> ET:
+def dump_ttx(style: str, variant: str) -> ET:
     """OS/2, post テーブルのみのttxファイルを出力"""
     fontTools.ttx.main(
         [
@@ -106,15 +119,17 @@ def dump_ttx(style: str) -> ET:
             "post",
             "-f",
             "-o",
-            f"{BUILD_FONTS_DIR}/{OUTPUT_PREFIX}{FONT_NAME}-{style}.ttx",
-            f"{BUILD_FONTS_DIR}/{INPUT_PREFIX}{FONT_NAME}-{style}.ttf",
+            f"{BUILD_FONTS_DIR}/{OUTPUT_PREFIX}{FONT_NAME}{variant}-{style}.ttx",
+            f"{BUILD_FONTS_DIR}/{INPUT_PREFIX}{FONT_NAME}{variant}-{style}.ttf",
         ]
     )
 
-    return ET.parse(f"{BUILD_FONTS_DIR}/{OUTPUT_PREFIX}{FONT_NAME}-{style}.ttx")
+    return ET.parse(
+        f"{BUILD_FONTS_DIR}/{OUTPUT_PREFIX}{FONT_NAME}{variant}-{style}.ttx"
+    )
 
 
-def dump_ttx_cmap(style: str) -> ET:
+def dump_ttx_cmap(style: str, variant: str) -> ET:
     """cmap テーブルのみのttxファイルを出力"""
     fontTools.ttx.main(
         [
@@ -122,12 +137,14 @@ def dump_ttx_cmap(style: str) -> ET:
             "cmap",
             "-f",
             "-o",
-            f"{BUILD_FONTS_DIR}/{OUTPUT_PREFIX}{FONT_NAME}-{style}_cmap.ttx",
-            f"{BUILD_FONTS_DIR}/{INPUT_PREFIX}{FONT_NAME}-{style}.ttf",
+            f"{BUILD_FONTS_DIR}/{OUTPUT_PREFIX}{FONT_NAME}{variant}-{style}_cmap.ttx",
+            f"{BUILD_FONTS_DIR}/{INPUT_PREFIX}{FONT_NAME}{variant}-{style}.ttf",
         ]
     )
 
-    return ET.parse(f"{BUILD_FONTS_DIR}/{OUTPUT_PREFIX}{FONT_NAME}-{style}_cmap.ttx")
+    return ET.parse(
+        f"{BUILD_FONTS_DIR}/{OUTPUT_PREFIX}{FONT_NAME}{variant}-{style}_cmap.ttx"
+    )
 
 
 def fix_os2_table(xml: ET, style: str, flag_hw: bool = False):

@@ -5,6 +5,7 @@
 import math
 import os
 import shutil
+import sys
 import fontforge
 import psMat
 
@@ -19,6 +20,10 @@ SOURCE_FONTS_DIR = "source"
 BUILD_FONTS_DIR = "build"
 
 IDEOGRAPHIC_SPACE = "ideographic_space.sfd"
+
+HALF_WIDTH_STR = "HW"
+SLASHED_ZERO_STR = "SZ"
+INVISIBLE_ZENKAKU_SPACE_STR = "IS"
 
 EM_ASCENT = 880
 EM_DESCENT = 120
@@ -35,8 +40,16 @@ Copyright (c) 2020 - 2023, cormullion (https://github.com/cormullion/juliamono)
 Copyright 2022 Yuko Otawara
 """
 
+options = {}
+
 
 def main():
+    # オプション判定
+    get_options()
+    if options.get("unknown-option"):
+        usage()
+        return
+
     # buildディレクトリを作成する
     if os.path.exists(BUILD_FONTS_DIR):
         shutil.rmtree(BUILD_FONTS_DIR)
@@ -51,7 +64,35 @@ def main():
     generate_font("Bd", "BoldItalic", "BoldItalic", italic=True)
 
 
-def generate_font(src_style, dst_style, merged_style, flag_hw=False, italic=False):
+def usage():
+    print(
+        f"Usage: {sys.argv[0]} [--slashed-zero] [--invisible-zenkaku-space] [--half-width]"
+    )
+
+
+def get_options():
+    """オプションを取得する"""
+
+    global options
+
+    # オプションなしの場合は何もしない
+    if len(sys.argv) == 1:
+        return
+
+    for arg in sys.argv[1:]:
+        # オプション判定
+        if arg == "--slashed-zero":
+            options["slashed-zero"] = True
+        elif arg == "--invisible-zenkaku-space":
+            options["invisible-zenkaku-space"] = True
+        elif arg == "--half-width":
+            options["half-width"] = True
+        else:
+            options["unknown-option"] = True
+            return
+
+
+def generate_font(src_style, dst_style, merged_style, italic=False):
     print(f"=== Generate {merged_style} style ===")
 
     # 合成するフォントを開く
@@ -71,8 +112,12 @@ def generate_font(src_style, dst_style, merged_style, flag_hw=False, italic=Fals
     if italic:
         transform_italic_glyphs(src_font)
 
+    # スラッシュ付きゼロ
+    if options.get("slashed-zero"):
+        slashed_zero(dst_font)
+
     # 3:5幅版との差分を調整する
-    if flag_hw:
+    if options.get("half-width"):
         # 1:2 幅にする
         transform_half_width(dst_font)
     else:
@@ -86,13 +131,18 @@ def generate_font(src_style, dst_style, merged_style, flag_hw=False, italic=Fals
     dst_font.mergeFonts(src_font)
 
     # 全角スペースを可視化する
-    visualize_zenkaku_space(dst_font)
+    if not options.get("invisible-zenkaku-space"):
+        visualize_zenkaku_space(dst_font)
+
+    # オプション毎の修飾子を追加する
+    variant = HALF_WIDTH_STR if options.get("half-width") else ""
+    variant += SLASHED_ZERO_STR if options.get("slashed-zero") else ""
+    variant += (
+        INVISIBLE_ZENKAKU_SPACE_STR if options.get("invisible-zenkaku-space") else ""
+    )
 
     # メタデータを編集する
-    edit_meta_data(dst_font, merged_style, flag_hw)
-
-    # 1:2版の場合の修飾子を追加する
-    variant = "hw" if flag_hw else ""
+    edit_meta_data(dst_font, merged_style, variant)
 
     # ttfファイルに保存
     dst_font.generate(
@@ -126,6 +176,8 @@ def delete_unwanted_glyphs(font):
     clear_glyph_range(font, 0xFF62, 0xFF63)
     # U+3001-3015
     clear_glyph_range(font, 0x3001, 0x3015)
+    # U+FF0D
+    clear_glyph_range(font, 0xFF0D, 0xFF0D)
 
 
 def clear_glyph_range(font, start: int, end: int):
@@ -166,6 +218,15 @@ def transform_italic_glyphs(font):
         glyph.transform(psMat.skew(ITALIC_SLOPE * math.pi / 180))
 
 
+def slashed_zero(font):
+    # "zero.zero" を "zero" にコピーする
+    font.selection.select("zero.zero")
+    font.copy()
+    font.selection.select(("unicode", None), 0x0030)
+    font.paste()
+    font.selection.none()
+
+
 def width_500_to_600(font):
     """幅が500のグリフを600に変更する"""
     for glyph in font.glyphs():
@@ -197,7 +258,7 @@ def visualize_zenkaku_space(font):
     font.mergeFonts(fontforge.open(f"{SOURCE_FONTS_DIR}/{IDEOGRAPHIC_SPACE}"))
 
 
-def edit_meta_data(font, weight: str, flag_hw: bool):
+def edit_meta_data(font, weight: str, variant: str):
     """フォント内のメタデータを編集する"""
     font.ascent = EM_ASCENT
     font.descent = EM_DESCENT
@@ -211,8 +272,6 @@ def edit_meta_data(font, weight: str, flag_hw: bool):
     font.hhea_linegap = 0
     font.os2_typolinegap = 0
 
-    variant = "hw" if flag_hw else ""
-
     font.sfnt_names = (
         (
             "English (US)",
@@ -222,9 +281,9 @@ def edit_meta_data(font, weight: str, flag_hw: bool):
         ("English (US)", "License URL", "http://scripts.sil.org/OFL"),
         ("English (US)", "Version", VERSION),
     )
-    font.familyname = f"{FONT_NAME}{variant}"
+    font.familyname = f"{FONT_NAME} {variant}"
     font.fontname = f"{FONT_NAME}{variant}-{weight}"
-    font.fullname = f"{FONT_NAME}{variant} {weight}"
+    font.fullname = f"{FONT_NAME} {variant} {weight}"
     font.os2_vendor = "TWR"
     font.copyright = COPYRIGHT
 

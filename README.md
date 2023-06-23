@@ -22,17 +22,35 @@ Juisee は、欧文フォント [JuliaMono](https://juliamono.netlify.app) と�
 
 ## ビルド
 
-- fontforge: `20230101` \[[Windows Build](https://fontforge.org/en-US/downloads/windows/)\]
+ビルドに使用するツール、ランタイム
+
+- fontforge: `20230101` \[[Windows](https://fontforge.org/en-US/downloads/windows/)\] \[[Linux](https://fontforge.org/en-US/downloads/gnulinux/)\]
 - Python: `>=3.8`
 
-**Windows**
+### Windows
 
 ```sh
 # 必要パッケージのインストール
 pip install -r requirements.txt
 # ビルド
-& "C:\Program Files (x86)\FontForgeBuilds\bin\fontforge.exe" --lang=py -script .\fontforge_script.py && Get-ChildItem .\build\fontforge_Juisee*.ttf | % { python3 -m ttfautohint --dehint $_.FullName $_.FullName } && python3 fonttools_script.py
+& "C:\Program Files (x86)\FontForgeBuilds\bin\fontforge.exe" --lang=py -script .\fontforge_script.py && Get-ChildItem .\build\fontforge_Juisee*.ttf | % { python -m ttfautohint --dehint --no-info $_.FullName $_.FullName } && python fonttools_script.py
 ```
+
+`fontforge_script.py` オプション:
+
+- `--slashed-zero` : `0` を斜線付きゼロにする
+- `--invisible-zenkaku-space` : 全角スペースを不可視にする
+- `--half-width` : 半角文字と全角文字の幅の比率を 半角1:全角2 にする
+
+オプション付きの実行例:
+
+```sh
+"C:\Program Files (x86)\FontForgeBuilds\bin\fontforge.exe" --lang=py -script .\fontforge_script.py --slashed-zero --invisible-zenkaku-space
+```
+
+### Linux
+
+coming soon...
 
 ## ライセンス
 
