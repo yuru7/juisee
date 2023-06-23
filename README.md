@@ -29,7 +29,7 @@ Juisee は、欧文フォント [JuliaMono](https://juliamono.netlify.app) と�
 - fontforge: `20230101` \[[Windows](https://fontforge.org/en-US/downloads/windows/)\] \[[Linux](https://fontforge.org/en-US/downloads/gnulinux/)\]
 - Python: `>=3.8`
 
-### Windows
+### Windows (PowerShell)
 
 ```sh
 # 必要パッケージのインストール
