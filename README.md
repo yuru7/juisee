@@ -7,6 +7,11 @@ Juisee は、欧文フォント [JuliaMono](https://juliamono.netlify.app) と�
 
 ![image](https://github.com/yuru7/juisee/assets/13458509/b7e3d2ba-12d0-42f2-8c72-bdc376048cc7)
 
+> 💡 その他、公開中のプログラミングフォント
+> - 日本語文字に源柔ゴシック、英数字部分に Hack を使った [**白源 (はくげん／HackGen)**](https://github.com/yuru7/HackGen)
+> - 日本語文字に IBM Plex Sans JP、英数字部分に IBM Plex Mono を使った [**PlemolJP (プレモル ジェイピー)**](https://github.com/yuru7/PlemolJP)
+> - 日本語文字にBIZ UDゴシック、英数字部分に JetBrains Mono を使った [**UDEV Gothic**](https://github.com/yuru7/udev-gothic)
+
 ## 特徴
 
 以下のような特徴があります。
@@ -15,10 +20,11 @@ Juisee は、欧文フォント [JuliaMono](https://juliamono.netlify.app) と�
 - LINE の利便性とフレンドリーなアイデンティティから着想を得て制作された [LINE Seed JP](https://seed.line.me/index_jp.html) 由来のやわらかな印象の日本語文字
 - 文字幅比率が 半角3:全角5、ゆとりのある幅の半角英数字
 - 主に `->` `=>` などの矢印表現において JuliaMono 由来のリガチャを搭載
+- バグの原因になりがちな全角スペースが可視化される
 
 ## サンプル
 
-![image](https://github.com/yuru7/juisee/assets/13458509/68354be6-8fbf-4fb3-a8db-db43e24f83d3)
+![image](https://github.com/yuru7/juisee/assets/13458509/1b4b4f4b-a5c0-4197-94a3-449cf0b59fb2)
 ![image](https://github.com/yuru7/juisee/assets/13458509/6515d3c9-4141-4206-9ab3-ec8f2d8ab449)
 ![image](https://github.com/yuru7/juisee/assets/13458509/96522093-2cb2-4fe9-8094-764993c3e04f)
 
