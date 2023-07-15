@@ -2,31 +2,37 @@
 
 # 2つのフォントを合成する
 
+import configparser
 import math
 import os
 import shutil
 import sys
+
 import fontforge
 import psMat
 
-VERSION = "v0.0.3"
+# iniファイルを読み込む
+settings = configparser.ConfigParser()
+settings.read("build.ini", encoding="utf-8")
 
-FONT_NAME = "Juisee"
+VERSION = settings.get("DEFAULT", "VERSION")
+FONT_NAME = settings.get("DEFAULT", "FONT_NAME")
+SRC_FONT = settings.get("DEFAULT", "SRC_FONT")
+DST_FONT = settings.get("DEFAULT", "DST_FONT")
+SOURCE_FONTS_DIR = settings.get("DEFAULT", "SOURCE_FONTS_DIR")
+BUILD_FONTS_DIR = settings.get("DEFAULT", "BUILD_FONTS_DIR")
+VENDER_NAME = settings.get("DEFAULT", "VENDER_NAME")
+FONTFORGE_PREFIX = settings.get("DEFAULT", "FONTFORGE_PREFIX")
+IDEOGRAPHIC_SPACE = settings.get("DEFAULT", "IDEOGRAPHIC_SPACE")
+HALF_WIDTH_STR = settings.get("DEFAULT", "HALF_WIDTH_STR")
+SLASHED_ZERO_STR = settings.get("DEFAULT", "SLASHED_ZERO_STR")
+INVISIBLE_ZENKAKU_SPACE_STR = settings.get("DEFAULT", "INVISIBLE_ZENKAKU_SPACE_STR")
+EM_ASCENT = int(settings.get("DEFAULT", "EM_ASCENT"))
+EM_DESCENT = int(settings.get("DEFAULT", "EM_DESCENT"))
+HALF_WIDTH_12 = int(settings.get("DEFAULT", "HALF_WIDTH_12"))
+FULL_WIDTH_35 = int(settings.get("DEFAULT", "FULL_WIDTH_35"))
+ENG_GLYPH_SCALE_12 = float(settings.get("DEFAULT", "ENG_GLYPH_SCALE_12"))
 
-SRC_FONT = "LINESeedJP_TTF_"
-DST_FONT = "JuliaMono-"
-
-SOURCE_FONTS_DIR = "source"
-BUILD_FONTS_DIR = "build"
-
-IDEOGRAPHIC_SPACE = "ideographic_space.sfd"
-
-HALF_WIDTH_STR = "HW"
-SLASHED_ZERO_STR = "SZ"
-INVISIBLE_ZENKAKU_SPACE_STR = "IS"
-
-EM_ASCENT = 880
-EM_DESCENT = 120
 FONT_ASCENT = EM_ASCENT + 120
 FONT_DESCENT = EM_DESCENT + 250
 
@@ -38,7 +44,7 @@ Copyright (c) 2020 - 2023, cormullion (https://github.com/cormullion/juliamono)
 
 [Juisee]
 Copyright 2022 Yuko Otawara
-"""
+"""  # noqa: E501
 
 options = {}
 
@@ -66,7 +72,8 @@ def main():
 
 def usage():
     print(
-        f"Usage: {sys.argv[0]} [--slashed-zero] [--invisible-zenkaku-space] [--half-width]"
+        f"Usage: {sys.argv[0]} "
+        "[--slashed-zero] [--invisible-zenkaku-space] [--half-width]"
     )
 
 
@@ -119,7 +126,7 @@ def generate_font(src_style, dst_style, merged_style, italic=False):
     # 3:5幅版との差分を調整する
     if options.get("half-width"):
         # 1:2 幅にする
-        transform_half_width(dst_font)
+        transform_half_width(src_font, dst_font)
     else:
         # src_fontで半角幅(500)のグリフの幅を3:5になるよう調整する
         width_500_to_600(src_font)
@@ -146,7 +153,7 @@ def generate_font(src_style, dst_style, merged_style, italic=False):
 
     # ttfファイルに保存
     dst_font.generate(
-        f"{BUILD_FONTS_DIR}/fontforge_{FONT_NAME}{variant}-{merged_style}.ttf"
+        f"{BUILD_FONTS_DIR}/{FONTFORGE_PREFIX}{FONT_NAME}{variant}-{merged_style}.ttf"
     )
 
     # ttfを閉じる
@@ -236,17 +243,32 @@ def width_500_to_600(font):
             glyph.width = 600
 
 
-def transform_half_width(font):
-    """半角幅相当のグリフを半角に変換する"""
-    BEFORE_WIDTH = 600
-    AFTER_WIDTH = 500
-    for glyph in font.glyphs():
-        if glyph.width == BEFORE_WIDTH:
-            # 84%幅に縮小
-            glyph.transform(psMat.scale(0.84, 1))
-            glyph.transform(psMat.translate(-(glyph.width - AFTER_WIDTH) / 2, 0))
-            # 幅を500にする
-            glyph.width = AFTER_WIDTH
+def transform_half_width(jp_font, eng_font):
+    """1:2幅になるように変換する"""
+    for glyph in eng_font.selection.select(("unicode", None), 0x0030).byGlyphs:
+        before_width_eng = glyph.width
+    after_width_eng = HALF_WIDTH_12
+    for glyph in eng_font.glyphs():
+        if glyph.width == before_width_eng:
+            # 縮小
+            glyph.transform(psMat.scale(ENG_GLYPH_SCALE_12, 1))
+            # グリフ位置を調整してから幅を設定
+            glyph.transform(psMat.translate(-(glyph.width - after_width_eng) / 2, 0))
+            glyph.width = after_width_eng
+
+    for glyph in jp_font.selection.select(("unicode", None), 0x3042).byGlyphs:
+        before_half_width_jp = glyph.width / 2
+        before_full_width_jp = glyph.width
+    after_width_jp = HALF_WIDTH_12 * 2
+    for glyph in jp_font.glyphs():
+        if glyph.width == before_half_width_jp:
+            # 英数字グリフと同じ幅にする
+            glyph.transform(psMat.translate(-(glyph.width - after_width_eng) / 2, 0))
+            glyph.width = after_width_eng
+        elif glyph.width == before_full_width_jp:
+            # グリフ位置を調整してから幅を設定
+            glyph.transform(psMat.translate(-(glyph.width - after_width_jp) / 2, 0))
+            glyph.width = after_width_jp
 
 
 def visualize_zenkaku_space(font):
@@ -276,7 +298,9 @@ def edit_meta_data(font, weight: str, variant: str):
         (
             "English (US)",
             "License",
-            "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL",
+            """This Font Software is licensed under the SIL Open Font License, 
+            Version 1.1. This license is available with a FAQ 
+            at: http://scripts.sil.org/OFL""",
         ),
         ("English (US)", "License URL", "http://scripts.sil.org/OFL"),
         ("English (US)", "Version", VERSION),
@@ -284,7 +308,7 @@ def edit_meta_data(font, weight: str, variant: str):
     font.familyname = f"{FONT_NAME} {variant}"
     font.fontname = f"{FONT_NAME}{variant}-{weight}"
     font.fullname = f"{FONT_NAME} {variant} {weight}"
-    font.os2_vendor = "TWR"
+    font.os2_vendor = VENDER_NAME
     font.copyright = COPYRIGHT
 
 

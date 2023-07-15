@@ -1,17 +1,23 @@
 #!/bin/env python3
 
+import configparser
 import glob
-import fontTools.ttx
-import xml.etree.ElementTree as ET
 import os
+import xml.etree.ElementTree as ET
 
-FONT_NAME = "Juisee"
-INPUT_PREFIX = "fontforge_"
-OUTPUT_PREFIX = "fonttools_"
+import fontTools.ttx
 
-BUILD_FONTS_DIR = "build"
+# iniファイルを読み込む
+settings = configparser.ConfigParser()
+settings.read("build.ini", encoding="utf-8")
 
-HALF_WIDTH_STR = "HW"
+FONT_NAME = settings.get("DEFAULT", "FONT_NAME")
+INPUT_PREFIX = settings.get("DEFAULT", "FONTFORGE_PREFIX")
+OUTPUT_PREFIX = settings.get("DEFAULT", "FONTTOOLS_PREFIX")
+BUILD_FONTS_DIR = settings.get("DEFAULT", "BUILD_FONTS_DIR")
+HALF_WIDTH_STR = settings.get("DEFAULT", "HALF_WIDTH_STR")
+HALF_WIDTH_12 = int(settings.get("DEFAULT", "HALF_WIDTH_12"))
+FULL_WIDTH_35 = int(settings.get("DEFAULT", "FULL_WIDTH_35"))
 
 xml_cmap = None
 
@@ -152,9 +158,9 @@ def fix_os2_table(xml: ET, style: str, flag_hw: bool = False):
     # xAvgCharWidthを編集
     # タグ形式: <xAvgCharWidth value="1000"/>
     if flag_hw:
-        x_avg_char_width = 500
+        x_avg_char_width = HALF_WIDTH_12
     else:
-        x_avg_char_width = 1000
+        x_avg_char_width = FULL_WIDTH_35
     for elem in xml.iter("xAvgCharWidth"):
         elem.set("value", str(x_avg_char_width))
 
