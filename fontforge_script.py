@@ -305,9 +305,9 @@ def edit_meta_data(font, weight: str, variant: str):
         ("English (US)", "License URL", "http://scripts.sil.org/OFL"),
         ("English (US)", "Version", VERSION),
     )
-    font.familyname = f"{FONT_NAME} {variant}"
+    font.familyname = f"{FONT_NAME} {variant}".strip()
     font.fontname = f"{FONT_NAME}{variant}-{weight}"
-    font.fullname = f"{FONT_NAME} {variant} {weight}"
+    font.fullname = f"{FONT_NAME} {variant}".strip() + f" {weight}"
     font.os2_vendor = VENDER_NAME
     font.copyright = COPYRIGHT
 
