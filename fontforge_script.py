@@ -294,13 +294,17 @@ def edit_meta_data(font, weight: str, variant: str):
     font.hhea_linegap = 0
     font.os2_typolinegap = 0
 
+    # 一部ソフトで日本語表示ができなくなる事象への対策
+    # なぜかJuliaMonoでは韓国語のビットが立っているので、それを除外し、代わりに日本語ビットを立てる
+    font.os2_codepages = (0b1100000000000100000000111111111, 0)
+
     font.sfnt_names = (
         (
             "English (US)",
             "License",
-            """This Font Software is licensed under the SIL Open Font License, 
-            Version 1.1. This license is available with a FAQ 
-            at: http://scripts.sil.org/OFL""",
+            """This Font Software is licensed under the SIL Open Font License,
+Version 1.1. This license is available with a FAQ
+at: http://scripts.sil.org/OFL""",
         ),
         ("English (US)", "License URL", "http://scripts.sil.org/OFL"),
         ("English (US)", "Version", VERSION),
