@@ -49,6 +49,7 @@ Copyright 2022 Yuko Otawara
 """  # noqa: E501
 
 options = {}
+nerd_font = None
 
 
 def main():
@@ -96,8 +97,8 @@ def get_options():
             options["invisible-zenkaku-space"] = True
         elif arg == "--half-width":
             options["half-width"] = True
-        elif arg == "--nerd-font":
-            options["nerd-font"] = True
+        elif arg == "--nerd-fonts":
+            options["nerd-fonts"] = True
         else:
             options["unknown-option"] = True
             return
@@ -138,6 +139,10 @@ def generate_font(src_style, dst_style, merged_style, italic=False):
     # GSUB、GPOSテーブル調整
     remove_lookups(src_font, remove_gsub=True, remove_gpos=True)
 
+    # Nerd Fontのグリフを追加する
+    if options.get("nerd-fonts"):
+        add_nerd_font_glyphs(src_font, dst_font)
+
     # 合成する
     dst_font.mergeFonts(src_font)
 
@@ -145,17 +150,13 @@ def generate_font(src_style, dst_style, merged_style, italic=False):
     if not options.get("invisible-zenkaku-space"):
         visualize_zenkaku_space(dst_font)
 
-    # Nerd Fontのグリフを追加する
-    if options.get("nerd-font"):
-        add_nerd_font_glyphs(src_font, dst_font)
-
     # オプション毎の修飾子を追加する
     variant = HALF_WIDTH_STR if options.get("half-width") else ""
     variant += SLASHED_ZERO_STR if options.get("slashed-zero") else ""
     variant += (
         INVISIBLE_ZENKAKU_SPACE_STR if options.get("invisible-zenkaku-space") else ""
     )
-    variant += NERD_FONTS_STR if options.get("nerd-font") else ""
+    variant += NERD_FONTS_STR if options.get("nerd-fonts") else ""
 
     # メタデータを編集する
     edit_meta_data(dst_font, merged_style, variant)
