@@ -247,12 +247,18 @@ def fix_cmap_table(xml: ET):
     for elem in xml.iter("cmap_format_4"):
         with open("add_cmap.csv", "r") as f:
             for line in f:
+                # "#" で始まる行はコメント扱い
+                if line.startswith("#"):
+                    continue
                 sub = ET.SubElement(elem, "map")
                 sub.set("code", line.split(",")[0])
                 sub.set("name", line.split(",")[1])
     for elem in xml.iter("cmap_format_12"):
         with open("add_cmap.csv", "r") as f:
             for line in f:
+                # "#" で始まる行はコメント扱い
+                if line.startswith("#"):
+                    continue
                 sub = ET.SubElement(elem, "map")
                 sub.set("code", line.split(",")[0])
                 sub.set("name", line.split(",")[1])

@@ -7,6 +7,7 @@ import math
 import os
 import shutil
 import sys
+import uuid
 
 import fontforge
 import psMat
@@ -27,6 +28,7 @@ IDEOGRAPHIC_SPACE = settings.get("DEFAULT", "IDEOGRAPHIC_SPACE")
 HALF_WIDTH_STR = settings.get("DEFAULT", "HALF_WIDTH_STR")
 SLASHED_ZERO_STR = settings.get("DEFAULT", "SLASHED_ZERO_STR")
 INVISIBLE_ZENKAKU_SPACE_STR = settings.get("DEFAULT", "INVISIBLE_ZENKAKU_SPACE_STR")
+NERD_FONTS_STR = settings.get("DEFAULT", "NERD_FONTS_STR")
 EM_ASCENT = int(settings.get("DEFAULT", "EM_ASCENT"))
 EM_DESCENT = int(settings.get("DEFAULT", "EM_DESCENT"))
 HALF_WIDTH_12 = int(settings.get("DEFAULT", "HALF_WIDTH_12"))
@@ -94,6 +96,8 @@ def get_options():
             options["invisible-zenkaku-space"] = True
         elif arg == "--half-width":
             options["half-width"] = True
+        elif arg == "--nerd-font":
+            options["nerd-font"] = True
         else:
             options["unknown-option"] = True
             return
@@ -109,8 +113,8 @@ def generate_font(src_style, dst_style, merged_style, italic=False):
     # src_font は既に1000なので dst_font のみ変換する
     em_1000(dst_font)
 
-    # 合成に邪魔なグリフを削除する
-    delete_unwanted_glyphs(dst_font)
+    # 合成前のグリフ調整
+    src_font, dst_font = pre_composition_glyph_adjustment(src_font, dst_font)
 
     # 重複するグリフを削除する
     delete_duplicate_glyphs(src_font, dst_font)
@@ -131,8 +135,8 @@ def generate_font(src_style, dst_style, merged_style, italic=False):
         # src_fontで半角幅(500)のグリフの幅を3:5になるよう調整する
         width_500_to_600(src_font)
 
-    # GSUBテーブルを削除する (ひらがな等の全角文字が含まれる行でリガチャが解除される対策)
-    remove_lookups(src_font)
+    # GSUB、GPOSテーブル調整
+    remove_lookups(src_font, remove_gsub=True, remove_gpos=True)
 
     # 合成する
     dst_font.mergeFonts(src_font)
@@ -141,12 +145,17 @@ def generate_font(src_style, dst_style, merged_style, italic=False):
     if not options.get("invisible-zenkaku-space"):
         visualize_zenkaku_space(dst_font)
 
+    # Nerd Fontのグリフを追加する
+    if options.get("nerd-font"):
+        add_nerd_font_glyphs(src_font, dst_font)
+
     # オプション毎の修飾子を追加する
     variant = HALF_WIDTH_STR if options.get("half-width") else ""
     variant += SLASHED_ZERO_STR if options.get("slashed-zero") else ""
     variant += (
         INVISIBLE_ZENKAKU_SPACE_STR if options.get("invisible-zenkaku-space") else ""
     )
+    variant += NERD_FONTS_STR if options.get("nerd-font") else ""
 
     # メタデータを編集する
     edit_meta_data(dst_font, merged_style, variant)
@@ -173,18 +182,22 @@ def em_1000(font):
     font.em = em_size
 
 
-def delete_unwanted_glyphs(font):
+def pre_composition_glyph_adjustment(src_font, dst_font):
     """dst_font側のグリフを削除する。これにより合成時にsrc_font側のグリフが優先される"""
     # U+0000
-    clear_glyph_range(font, 0x0000, 0x0000)
-    # U+FF01-FF5D
-    clear_glyph_range(font, 0xFF01, 0xFF5D)
-    # U+FF62-FF63
-    clear_glyph_range(font, 0xFF62, 0xFF63)
-    # U+3001-3015
-    clear_glyph_range(font, 0x3001, 0x3015)
-    # U+FF0D
-    clear_glyph_range(font, 0xFF0D, 0xFF0D)
+    clear_glyph_range(dst_font, 0x0000, 0x0000)
+    # 全角ASCII
+    clear_glyph_range(dst_font, 0xFF01, 0xFF5E)
+    # カギ括弧 「」
+    clear_glyph_range(dst_font, 0xFF62, 0xFF63)
+    # 日本語頻出の約もの
+    clear_glyph_range(dst_font, 0x3001, 0x3015)
+    # 中点
+    clear_glyph_range(dst_font, 0x30FB, 0x30FB)
+    # WAVE DASH, FULLWIDTH TILDE
+    src_font = copy_altuni(src_font, (0x301C,))
+
+    return src_font, dst_font
 
 
 def clear_glyph_range(font, start: int, end: int):
@@ -193,6 +206,46 @@ def clear_glyph_range(font, start: int, end: int):
         for glyph in font.selection.select(("ranges", None), i).byGlyphs:
             glyph.clear()
     font.selection.none()
+
+
+def copy_altuni(font, unicode_list):
+    for unicode in unicode_list:
+        glyph = font[unicode]
+        if glyph.altuni is not None:
+            # 以下形式のタプルで返ってくる
+            # (unicode-value, variation-selector, reserved-field)
+            # 第3フィールドは常に0なので無視
+            altunis = glyph.altuni
+
+            # variation-selectorがなく (-1)、透過的にグリフを参照しているものは実体のグリフに変換する
+            before_altuni = ""
+            for altuni in altunis:
+                # 直前のaltuniと同じ場合はスキップ
+                if altuni[1] == -1 and before_altuni != ",".join(map(str, altuni)):
+                    glyph.altuni = None
+                    copy_target_unicode = altuni[0]
+                    try:
+                        copy_target_glyph = font.createChar(
+                            copy_target_unicode,
+                            f"uni{hex(copy_target_unicode).replace('0x', '').upper()}copy",
+                        )
+                    except Exception:
+                        copy_target_glyph = font[copy_target_unicode]
+                    copy_target_glyph.clear()
+                    copy_target_glyph.width = glyph.width
+                    font.selection.select(glyph.glyphname)
+                    font.copy()
+                    font.selection.select(copy_target_glyph.glyphname)
+                    font.paste()
+                before_altuni = ",".join(map(str, altuni))
+    # エンコーディングの整理のため、開き直す
+    font_path = f"{BUILD_FONTS_DIR}/{font.fullname}_{uuid.uuid4()}.ttf"
+    font.generate(font_path)
+    font.close()
+    reopen_font = fontforge.open(font_path)
+    # 一時ファイルを削除
+    os.remove(font_path)
+    return reopen_font
 
 
 def delete_duplicate_glyphs(src_font, dst_font):
@@ -209,10 +262,14 @@ def delete_duplicate_glyphs(src_font, dst_font):
     dst_font.selection.none()
 
 
-def remove_lookups(font):
+def remove_lookups(font, remove_gsub=True, remove_gpos=True):
     """GSUB, GPOSテーブルを削除する"""
-    for lookup in list(font.gsub_lookups) + list(font.gpos_lookups):
-        font.removeLookup(lookup)
+    if remove_gsub:
+        for lookup in font.gsub_lookups:
+            font.removeLookup(lookup)
+    if remove_gpos:
+        for lookup in font.gpos_lookups:
+            font.removeLookup(lookup)
 
 
 def transform_italic_glyphs(font):
@@ -278,6 +335,81 @@ def visualize_zenkaku_space(font):
         glyph.clear()
     font.selection.none()
     font.mergeFonts(fontforge.open(f"{SOURCE_FONTS_DIR}/{IDEOGRAPHIC_SPACE}"))
+
+
+def add_nerd_font_glyphs(jp_font, eng_font):
+    """Nerd Fontのグリフを追加する"""
+    global nerd_font
+    # Nerd Fontのグリフを追加する
+    if nerd_font is None:
+        nerd_font = fontforge.open(f"{SOURCE_FONTS_DIR}/SymbolsNerdFont-Regular.ttf")
+        nerd_font.em = EM_ASCENT + EM_DESCENT
+        glyph_names = set()
+        for nerd_glyph in nerd_font.glyphs():
+            # Nerd Fontsのグリフ名をユニークにするため接尾辞を付ける
+            nerd_glyph.glyphname = f"{nerd_glyph.glyphname}-nf"
+            # postテーブルでのグリフ名重複対策
+            # fonttools merge で合成した後、MacOSで `'post'テーブルの使用性` エラーが発生することへの対処
+            if nerd_glyph.glyphname in glyph_names:
+                nerd_glyph.glyphname = f"{nerd_glyph.glyphname}-{nerd_glyph.encoding}"
+            glyph_names.add(nerd_glyph.glyphname)
+            # 幅を調整する
+            half_width = eng_font[0x0030].width
+            # Powerline Symbols の調整
+            if 0xE0B0 <= nerd_glyph.unicode <= 0xE0D4:
+                # なぜかズレている右付きグリフの個別調整 (EM 1000 に変更した後を想定して調整)
+                original_width = nerd_glyph.width
+                if nerd_glyph.unicode == 0xE0B2:
+                    nerd_glyph.transform(psMat.translate(-353, 0))
+                elif nerd_glyph.unicode == 0xE0B6:
+                    nerd_glyph.transform(psMat.translate(-414, 0))
+                elif nerd_glyph.unicode == 0xE0C5:
+                    nerd_glyph.transform(psMat.translate(-137, 0))
+                elif nerd_glyph.unicode == 0xE0C7:
+                    nerd_glyph.transform(psMat.translate(-214, 0))
+                elif nerd_glyph.unicode == 0xE0D4:
+                    nerd_glyph.transform(psMat.translate(-314, 0))
+                nerd_glyph.width = original_width
+                # 位置と幅合わせ
+                if nerd_glyph.width < half_width:
+                    nerd_glyph.transform(
+                        psMat.translate((half_width - nerd_glyph.width) / 2, 0)
+                    )
+                elif nerd_glyph.width > half_width:
+                    nerd_glyph.transform(psMat.scale(half_width / nerd_glyph.width, 1))
+                # グリフの高さ・位置を調整する
+                nerd_glyph.transform(psMat.scale(1, 1.14))
+                nerd_glyph.transform(psMat.translate(0, 21))
+            elif nerd_glyph.width < (EM_ASCENT + EM_DESCENT) * 0.6:
+                # 幅が狭いグリフは中央寄せとみなして調整する
+                nerd_glyph.transform(
+                    psMat.translate((half_width - nerd_glyph.width) / 2, 0)
+                )
+            # 幅を設定
+            nerd_glyph.width = half_width
+    # 日本語フォントにマージするため、既に存在する場合は削除する
+    for nerd_glyph in nerd_font.glyphs():
+        if nerd_glyph.unicode != -1:
+            # 既に存在する場合は削除する
+            try:
+                for glyph in jp_font.selection.select(
+                    ("unicode", None), nerd_glyph.unicode
+                ).byGlyphs:
+                    glyph.clear()
+            except Exception:
+                pass
+            try:
+                for glyph in eng_font.selection.select(
+                    ("unicode", None), nerd_glyph.unicode
+                ).byGlyphs:
+                    glyph.clear()
+            except Exception:
+                pass
+
+    jp_font.mergeFonts(nerd_font)
+
+    jp_font.selection.none()
+    eng_font.selection.none()
 
 
 def edit_meta_data(font, weight: str, variant: str):
