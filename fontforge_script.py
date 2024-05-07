@@ -8,6 +8,7 @@ import os
 import shutil
 import sys
 import uuid
+from decimal import ROUND_HALF_UP, Decimal
 
 import fontforge
 import psMat
@@ -31,12 +32,11 @@ INVISIBLE_ZENKAKU_SPACE_STR = settings.get("DEFAULT", "INVISIBLE_ZENKAKU_SPACE_S
 NERD_FONTS_STR = settings.get("DEFAULT", "NERD_FONTS_STR")
 EM_ASCENT = int(settings.get("DEFAULT", "EM_ASCENT"))
 EM_DESCENT = int(settings.get("DEFAULT", "EM_DESCENT"))
+OS2_ASCENT = int(settings.get("DEFAULT", "OS2_ASCENT"))
+OS2_DESCENT = int(settings.get("DEFAULT", "OS2_DESCENT"))
 HALF_WIDTH_12 = int(settings.get("DEFAULT", "HALF_WIDTH_12"))
 FULL_WIDTH_35 = int(settings.get("DEFAULT", "FULL_WIDTH_35"))
 ENG_GLYPH_SCALE_12 = float(settings.get("DEFAULT", "ENG_GLYPH_SCALE_12"))
-
-FONT_ASCENT = EM_ASCENT + 120
-FONT_DESCENT = EM_DESCENT + 250
 
 COPYRIGHT = """[LINE Seed]
 LINE Seed is copyrighted material owned by LINE Corp. (https://seed.line.me/index_jp.html)
@@ -117,6 +117,9 @@ def generate_font(src_style, dst_style, merged_style, italic=False):
     # 合成前のグリフ調整
     src_font, dst_font = pre_composition_glyph_adjustment(src_font, dst_font)
 
+    # いくつかのグリフ形状に調整を加える
+    adjust_some_glyph(src_font)
+
     # 重複するグリフを削除する
     delete_duplicate_glyphs(src_font, dst_font)
 
@@ -159,7 +162,17 @@ def generate_font(src_style, dst_style, merged_style, italic=False):
     variant += NERD_FONTS_STR if options.get("nerd-fonts") else ""
 
     # メタデータを編集する
-    edit_meta_data(dst_font, merged_style, variant)
+    cap_height = int(
+        Decimal(str(dst_font[0x0048].boundingBox()[3])).quantize(
+            Decimal("0"), ROUND_HALF_UP
+        )
+    )
+    x_height = int(
+        Decimal(str(dst_font[0x0078].boundingBox()[3])).quantize(
+            Decimal("0"), ROUND_HALF_UP
+        )
+    )
+    edit_meta_data(dst_font, merged_style, variant, cap_height, x_height)
 
     # ttfファイルに保存
     dst_font.generate(
@@ -247,6 +260,21 @@ def copy_altuni(font, unicode_list):
     # 一時ファイルを削除
     os.remove(font_path)
     return reopen_font
+
+
+def adjust_some_glyph(jp_font):
+    """いくつかのグリフ形状に調整を加える"""
+    full_width = jp_font[0x3042].width
+
+    # 全角括弧の開きを広くする
+    for glyph_name in [0xFF08, 0xFF3B, 0xFF5B]:
+        glyph = jp_font[glyph_name]
+        glyph.transform(psMat.translate(-180, 0))
+        glyph.width = full_width
+    for glyph_name in [0xFF09, 0xFF3D, 0xFF5D]:
+        glyph = jp_font[glyph_name]
+        glyph.transform(psMat.translate(180, 0))
+        glyph.width = full_width
 
 
 def delete_duplicate_glyphs(src_font, dst_font):
@@ -413,19 +441,26 @@ def add_nerd_font_glyphs(jp_font, eng_font):
     eng_font.selection.none()
 
 
-def edit_meta_data(font, weight: str, variant: str):
+def edit_meta_data(font, weight: str, variant: str, cap_height: int, x_height: int):
     """フォント内のメタデータを編集する"""
     font.ascent = EM_ASCENT
     font.descent = EM_DESCENT
-    font.os2_typoascent = EM_ASCENT
-    font.os2_typodescent = -EM_DESCENT
 
-    font.hhea_ascent = FONT_ASCENT
-    font.hhea_descent = -FONT_DESCENT
-    font.os2_winascent = FONT_ASCENT
-    font.os2_windescent = FONT_DESCENT
-    font.hhea_linegap = 0
+    os2_ascent = OS2_ASCENT
+    os2_descent = OS2_DESCENT
+
+    font.os2_typoascent = os2_ascent
+    font.os2_typodescent = -os2_descent
+    font.os2_winascent = os2_ascent
+    font.os2_windescent = os2_descent
     font.os2_typolinegap = 0
+
+    font.hhea_ascent = os2_ascent
+    font.hhea_descent = -os2_descent
+    font.hhea_linegap = 0
+
+    font.os2_xheight = x_height
+    font.os2_capheight = cap_height
 
     # 一部ソフトで日本語表示ができなくなる事象への対策
     # なぜかJuliaMonoでは韓国語のビットが立っているので、それを除外し、代わりに日本語ビットを立てる
