@@ -115,7 +115,7 @@ def generate_font(src_style, dst_style, merged_style, italic=False):
     em_1000(dst_font)
 
     # 合成前のグリフ調整
-    src_font, dst_font = pre_composition_glyph_adjustment(src_font, dst_font)
+    src_font, dst_font = delete_some_glyphs(src_font, dst_font)
 
     # いくつかのグリフ形状に調整を加える
     adjust_some_glyph(src_font)
@@ -196,7 +196,7 @@ def em_1000(font):
     font.em = em_size
 
 
-def pre_composition_glyph_adjustment(src_font, dst_font):
+def delete_some_glyphs(src_font, dst_font):
     """dst_font側のグリフを削除する。これにより合成時にsrc_font側のグリフが優先される"""
     # U+0000
     clear_glyph_range(dst_font, 0x0000, 0x0000)
@@ -210,6 +210,11 @@ def pre_composition_glyph_adjustment(src_font, dst_font):
     clear_glyph_range(dst_font, 0x30FB, 0x30FB)
     # WAVE DASH, FULLWIDTH TILDE
     src_font = copy_altuni(src_font, (0x301C,))
+    # 卍
+    clear_glyph_range(dst_font, 0x534D, 0x534D)
+    # 縦書き括弧
+    clear_glyph_range(dst_font, 0xFE35, 0xFE44)
+    clear_glyph_range(dst_font, 0xFE47, 0xFE48)
 
     return src_font, dst_font
 
@@ -295,6 +300,9 @@ def remove_lookups(font, remove_gsub=True, remove_gpos=True):
     """GSUB, GPOSテーブルを削除する"""
     if remove_gsub:
         for lookup in font.gsub_lookups:
+            # 縦書き関連のルックアップは削除しない
+            if "vert" in lookup or "vrt2" in lookup:
+                continue
             font.removeLookup(lookup)
     if remove_gpos:
         for lookup in font.gpos_lookups:
