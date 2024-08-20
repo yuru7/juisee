@@ -59,7 +59,20 @@ pip install -r requirements.txt
 
 ### Linux
 
-coming soon...
+```sh
+# 必要パッケージのインストール
+$ pip install -r requirements.txt
+# ビルド
+$ fontforge --lang=py -script fontforge_script.py
+$ find build -type f -name '*.ttf' -exec python -m ttfautohint --dehint --no-info {} {} \;
+$ python ./fonttools_script.py
+```
+
+オプション付きの実行例:
+
+```
+$ fontforge --lang=py -script fontforge_script.py --slashed-zero --invisible-zenkaku-space
+```
 
 ## ライセンス
 
