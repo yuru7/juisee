@@ -149,8 +149,11 @@ def generate_font(src_style, dst_style, merged_style, italic=False):
     # 合成する
     dst_font.mergeFonts(src_font)
 
-    # 全角スペースを可視化する
-    if not options.get("invisible-zenkaku-space"):
+    if options.get("invisible-zenkaku-space"):
+        # 全角スペースを不可視化する
+        invisible_zenkaku_space(dst_font)
+    else:
+        # 全角スペースを可視化する
         visualize_zenkaku_space(dst_font)
 
     # オプション毎の修飾子を追加する
@@ -363,6 +366,16 @@ def transform_half_width(jp_font, eng_font):
             # グリフ位置を調整してから幅を設定
             glyph.transform(psMat.translate(-(glyph.width - after_width_jp) / 2, 0))
             glyph.width = after_width_jp
+
+
+def invisible_zenkaku_space(jp_font):
+    """全角スペースを不可視化する"""
+    # U+3000 の表示が U+2003 の透過的参照になっているのを解除
+    jp_font[0x2003].altuni = None
+    # U+3000 に幅を設定し空白を作る
+    new_glyph = jp_font.createChar(0x3000, "uni3000")
+    new_glyph.clear()
+    new_glyph.width = jp_font[0x3042].width
 
 
 def visualize_zenkaku_space(jp_font):
